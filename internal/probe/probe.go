@@ -144,7 +144,7 @@ func cleanupBenchObjects(ctx context.Context, drv driver.Driver) {
 		return
 	}
 	for _, e := range entries {
-		_ = drv.Write(ctx, e.Name, nilReader(0), 0) // no-op for cleanup
+		_ = drv.Delete(ctx, e.Name)
 	}
 }
 

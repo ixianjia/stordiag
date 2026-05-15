@@ -101,6 +101,13 @@ func (d *POSIXDriver) Read(ctx context.Context, path string, w io.Writer) error 
 	return err
 }
 
+func (d *POSIXDriver) Delete(ctx context.Context, path string) error {
+	if err := os.Remove(d.resolve(path)); err != nil {
+		return fmt.Errorf("remove: %w", err)
+	}
+	return nil
+}
+
 func (d *POSIXDriver) Write(ctx context.Context, path string, r io.Reader, size int64) error {
 	full := d.resolve(path)
 	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {

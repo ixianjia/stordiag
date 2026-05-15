@@ -40,4 +40,5 @@ type Driver interface {
 	List(ctx context.Context, prefix string) ([]Stat, error)
 	Read(ctx context.Context, path string, w io.Writer) error
 	Write(ctx context.Context, path string, r io.Reader, size int64) error
+	Delete(ctx context.Context, path string) error
 }

@@ -84,6 +84,10 @@ func (d *S3Driver) Read(ctx context.Context, path string, w io.Writer) error {
 	return err
 }
 
+func (d *S3Driver) Delete(ctx context.Context, path string) error {
+	return d.client.RemoveObject(ctx, d.bucket, path, minio.RemoveObjectOptions{})
+}
+
 func (d *S3Driver) Write(ctx context.Context, path string, r io.Reader, size int64) error {
 	_, err := d.client.PutObject(ctx, d.bucket, path, r, size,
 		minio.PutObjectOptions{ContentType: "application/octet-stream"})

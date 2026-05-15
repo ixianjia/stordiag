@@ -122,7 +122,7 @@ func initDriver() error {
 }
 
 func isPath(s string) bool {
-	return s[0] == '/' || s[0] == '.'
+	return len(s) > 0 && (s[0] == '/' || s[0] == '.')
 }
 
 func ctx() (context.Context, context.CancelFunc) {
