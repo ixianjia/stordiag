@@ -1,16 +1,19 @@
-# stordiag — Storage Diagnostics Toolkit
+# stordiag — Storage Diagnostics Toolkit / 存储诊断工具箱
 
-单二进制、零依赖的分布式存储诊断工具箱。支持 **S3 兼容对象存储** 和 **POSIX 文件系统** 的三层分层诊断。
+> **Single binary, zero-dependency** distributed storage diagnostics.
+> Supports **S3-compatible object storage** and **POSIX filesystem** with three-layer hierarchical diagnosis.
+>
+> **单二进制、零依赖**的分布式存储诊断工具箱。支持 **S3 兼容对象存储** 和 **POSIX 文件系统** 的三层分层诊断。
 
-## 架构
+## Architecture / 架构
 
-| 层 | 名称 | 探针 | 数据来源 |
+| Layer / 层 | Name / 名称 | Probes / 探针 | Data Source / 数据来源 |
 |---|---|---|---|
-| **L1** | 应用层 | ping / bench (read/write) / data integrity | 存储 API 端到端 |
-| **L2** | 网络层 | DNS lookup / TCP connect / TLS handshake | `net` + `crypto/tls` |
-| **L3** | 系统层 | disk IOPS+await / memory / CPU iowait / Pressure Stall | `/proc/*` |
+| **L1** | Application / 应用层 | ping / bench (read/write) / data integrity | Storage API end-to-end |
+| **L2** | Network / 网络层 | DNS lookup / TCP connect / TLS handshake | `net` + `crypto/tls` |
+| **L3** | System / 系统层 | disk IOPS+await / memory / CPU iowait / Pressure Stall | `/proc/*` |
 
-诊断结果按层聚合，一目了然：
+Diagnostics aggregated by layer / 诊断结果按层聚合：
 
 ```
   Application  OK=3 WARN=0 FAIL=0
@@ -18,29 +21,29 @@
   System       OK=5 WARN=0 FAIL=0
 ```
 
-## 快速开始
+## Quick Start / 快速开始
 
-### 构建
+### Build / 构建
 
 ```bash
 go build -o stordiag .
-# 或
+# or
 make build
 ```
 
-### POSIX（本地文件系统）
+### POSIX (Local Filesystem / 本地文件系统)
 
 ```bash
-# 三层全量诊断
+# Full three-layer diagnosis / 三层全量诊断
 ./stordiag doctor --endpoint /tmp/stordiag_test
 
-# 只看系统层
+# System layer only / 只看系统层
 ./stordiag doctor --endpoint /tmp/stordiag_test --layers system
 
-# 单层独立执行
+# Single layer / 单层独立执行
 ./stordiag layers system --endpoint /tmp/stordiag_test
 
-# JSON 输出
+# JSON output
 ./stordiag doctor --json --endpoint /tmp/stordiag_test
 ```
 
@@ -57,29 +60,32 @@ export STORDIAG_BUCKET=stordiag
 ./stordiag bench write --size=4M --concurrency=4
 ```
 
-## 完整命令手册
+## Complete Command Reference / 完整命令手册
 
-### 全局标志
+### Global Flags / 全局标志
 
+Applies to all subcommands via CLI flags, environment variables, or config file.
 适用于所有子命令，可通过 CLI flag、环境变量、或配置文件设置。
 
-| Flag | 环境变量 | 默认值 | 说明 |
+| Flag | Env / 环境变量 | Default / 默认值 | Description / 说明 |
 |---|---|---|---|
-| `--endpoint` | `STORDIAG_ENDPOINT` | `localhost:9000` | 存储端点。POSIX 传路径 (如 `/data`)，S3 传 `host:port` |
-| `--access-key` | `STORDIAG_ACCESS_KEY` | `minioadmin` | S3 访问密钥。POSIX 忽略 |
-| `--secret-key` | `STORDIAG_SECRET_KEY` | `minioadmin` | S3 秘密密钥。POSIX 忽略 |
-| `--bucket` | `STORDIAG_BUCKET` | `stordiag` | S3 桶名。POSIX 忽略 |
-| `--secure` | `STORDIAG_SECURE` | `false` | S3 启用 TLS |
-| `--timeout` | `STORDIAG_TIMEOUT` | `30` | 操作超时（秒） |
-| `--json` | — | `false` | JSON 格式输出 |
-| `--config` | — | `.stordiag.yaml` | 配置文件路径 |
+| `--endpoint` | `STORDIAG_ENDPOINT` | `localhost:9000` | Storage endpoint. POSIX: path (e.g. `/data`), S3: `host:port` |
+| `--access-key` | `STORDIAG_ACCESS_KEY` | `minioadmin` | S3 access key. Ignored for POSIX. / POSIX 忽略 |
+| `--secret-key` | `STORDIAG_SECRET_KEY` | `minioadmin` | S3 secret key. Ignored for POSIX. / POSIX 忽略 |
+| `--bucket` | `STORDIAG_BUCKET` | `stordiag` | S3 bucket name. Ignored for POSIX. / POSIX 忽略 |
+| `--secure` | `STORDIAG_SECURE` | `false` | Enable TLS for S3 / S3 启用 TLS |
+| `--timeout` | `STORDIAG_TIMEOUT` | `30` | Operation timeout (seconds) / 操作超时（秒） |
+| `--json` | — | `false` | JSON output / JSON 格式输出 |
+| `--config` | — | `.stordiag.yaml` | Config file path / 配置文件路径 |
 
+Auto-detection: endpoint starting with `/` or `.` → POSIX path, otherwise → S3 `host:port`.
 端点自动检测：以 `/` 或 `.` 开头视为 POSIX 路径，否则视为 S3 `host:port`。
 
 ---
 
-### `doctor` — 全量三层诊断
+### `doctor` — Full Three-Layer Diagnosis / 全量三层诊断
 
+Runs all available probes against the storage backend and outputs an aggregated report.
 对存储后端执行所有可用层的诊断，输出聚合报告。
 
 ```
@@ -88,40 +94,40 @@ stordiag doctor [flags]
 
 #### Flags
 
-| Flag | 默认值 | 说明 |
+| Flag | Default / 默认值 | Description / 说明 |
 |---|---|---|
-| `--layers` | `all` | 运行哪些层：`all` / `app` / `network` / `system` |
+| `--layers` | `all` | Which layers: `all` / `app` / `network` / `system` |
 
-#### 探针清单
+#### Probe List / 探针清单
 
-| 层 | 探针 | 测量内容 |
+| Layer / 层 | Probe / 探针 | Measurement / 测量内容 |
 |---|---|---|
-| L1:app | `ping` | 存储端点连通性 + 往返延迟 |
-| L1:app | `bench_write` | 4MiB 写入吞吐 + p99 延迟 |
-| L1:app | `data_integrity` | 512KiB 端到端写→读→sha256 校验 |
-| L2:network | `dns_lookup` | DNS 解析延迟 |
-| L2:network | `tcp_connect` | TCP 建连延迟 |
-| L2:network | `tls_handshake` | TLS 握手延迟 + 协议版本 |
-| L3:system | `disk_*` | 各块设备 IOPS / await / 队列深度 |
-| L3:system | `memory_available` | 可用内存 (MiB) |
+| L1:app | `ping` | Connectivity + RTT / 存储端点连通性 + 往返延迟 |
+| L1:app | `bench_write` | 4MiB write throughput + p99 latency / 4MiB 写入吞吐 + p99 延迟 |
+| L1:app | `data_integrity` | 512KiB end-to-end write→read→sha256 / 512KiB 端到端写→读→sha256 校验 |
+| L2:network | `dns_lookup` | DNS resolution latency / DNS 解析延迟 |
+| L2:network | `tcp_connect` | TCP connect latency / TCP 建连延迟 |
+| L2:network | `tls_handshake` | TLS handshake latency + protocol version / TLS 握手延迟 + 协议版本 |
+| L3:system | `disk_*` | Block device IOPS / await / queue depth / 各块设备 IOPS / await / 队列深度 |
+| L3:system | `memory_available` | Available memory (MiB) / 可用内存 (MiB) |
 | L3:system | `pressure_cpu` | CPU Pressure Stall (avg60) |
 | L3:system | `pressure_io` | IO Pressure Stall (avg60) |
 | L3:system | `cpu_iowait` | /proc/stat iowait ticks |
 
-#### 示例
+#### Examples / 示例
 
 ```bash
-# 全量三层
+# Full three-layer / 全量三层
 stordiag doctor --endpoint /data
 
-# 只看应用层
+# Application only / 只看应用层
 stordiag doctor --layers app --endpoint /data
 
-# CI 集成
+# CI integration / CI 集成
 stordiag doctor --json --endpoint /data | jq '.Summary'
 ```
 
-#### 输出示例（text）
+#### Output Example / 输出示例（text）
 
 ```
 === Doctor Report: /data (posix) ===
@@ -131,14 +137,14 @@ stordiag doctor --json --endpoint /data | jq '.Summary'
 --- Application [L1:app]  OK=3  WARN=0  FAIL=0 ---
 Probe           Status  Latency    Value                        Detail
 -----           ------  -------    -----                        ------
-ping            OK      2.4µs      reachable                    
-bench_write     OK      953µs      4121.0 MB/s  p99=1.0ms       
+ping            OK      2.4µs      reachable
+bench_write     OK      953µs      4121.0 MB/s  p99=1.0ms
 data_integrity  OK      -          checksums match              sha256
 
 --- Network [L2:network]  OK=0  WARN=0  FAIL=0 ---
 Probe    Status  Latency  Value                          Detail
 -----    ------  -------  -----                          ------
-network  N/A     -        local filesystem — no network  
+network  N/A     -        local filesystem — no network
 
 --- System [L3:system]  OK=5  WARN=0  FAIL=0 ---
 Probe             Status  Latency  Value                                       Detail
@@ -152,70 +158,72 @@ cpu_iowait        OK      -        iowait=83350.0 tick                         /
 
 ---
 
-### `layers` — 单层独立执行
+### `layers` — Single Layer Execution / 单层独立执行
 
+Run probes for a single layer only. Useful for focused troubleshooting.
 只执行指定层的探针，适合聚焦排查。
 
 ```
 stordiag layers <app|network|system> [flags]
 ```
 
-#### 参数
+#### Arguments / 参数
 
-| 参数 | 说明 |
+| Arg / 参数 | Description / 说明 |
 |---|---|
-| `app` | 应用层：health + bench + data integrity |
-| `network` | 网络层：DNS/TCP/TLS 分解 |
-| `system` | 系统层：磁盘/内存/CPU/PSI |
+| `app` | Application layer: health + bench + data integrity / 应用层 |
+| `network` | Network layer: DNS/TCP/TLS / 网络层 |
+| `system` | System layer: disk/memory/CPU/PSI / 系统层 |
 
-#### 示例
+#### Examples / 示例
 
 ```bash
-# 只看系统层
+# System layer only / 只看系统层
 stordiag layers system --endpoint /data
 
-# 网络层 JSON 输出
+# Network layer JSON output / 网络层 JSON 输出
 stordiag layers network --endpoint s3.example.com:443 --json
 
-# 应用层（作为快速巡检）
+# Application layer (quick check) / 应用层快速巡检
 stordiag layers app --endpoint minio-cluster:9000
 ```
 
 ---
 
-### `health` — 健康检查
+### `health` — Health Check / 健康检查
 
+Quickly check storage endpoint connectivity and basic status.
 快速检查存储端点的连通性和基本状态。
 
 ```
 stordiag health [target] [flags]
 ```
 
-#### 参数
+#### Arguments / 参数
 
-| 参数 | 说明 |
+| Arg / 参数 | Description / 说明 |
 |---|---|
-| `target` | 可选，覆盖 `--endpoint` |
+| `target` | Optional, overrides `--endpoint` / 可选，覆盖 `--endpoint` |
 
-#### 探针
+#### Probes / 探针
 
-- `root_stat` — 根路径/桶状态
-- `list_objects` — 列出对象验证读权限
+- `root_stat` — Root path / bucket status / 根路径/桶状态
+- `list_objects` — List objects to verify read permission / 列出对象验证读权限
 
-#### 示例
+#### Examples / 示例
 
 ```bash
-# 基本健康检查
+# Basic health check / 基本健康检查
 stordiag health --endpoint /mnt/data
 
-# S3 端点健康
+# S3 endpoint health
 stordiag health --endpoint 10.0.0.1:9000
 
-# JSON 输出 (适合监控集成)
+# JSON output (monitoring integration) / 适合监控集成
 stordiag health --json --endpoint /data
 ```
 
-#### 输出示例
+#### Output Example / 输出示例
 
 ```
 === Health Check: /data (posix) ===
@@ -231,46 +239,47 @@ list_objects  OK      44 objects
 
 ---
 
-### `bench` — 性能压测
+### `bench` — Performance Benchmark / 性能压测
 
+Run read/write performance benchmarks against the storage backend.
 对存储后端执行读写性能基准测试，输出吞吐和延迟分布。
 
 ```
 stordiag bench <read|write> [flags]
 ```
 
-#### 参数
+#### Arguments / 参数
 
-| 参数 | 说明 |
+| Arg / 参数 | Description / 说明 |
 |---|---|
-| `read` | 读性能测试（先写入后读出） |
-| `write` | 写性能测试 |
+| `read` | Read benchmark (write then read) / 读性能测试 |
+| `write` | Write benchmark / 写性能测试 |
 
 #### Flags
 
-| Flag | 默认值 | 说明 |
+| Flag | Default / 默认值 | Description / 说明 |
 |---|---|---|
-| `--size` | `4194304` (4 MiB) | 每次 IO 的数据大小（字节） |
-| `--concurrency` | `4` | 并发操作数 |
-| `--samples` | `10` | 采样次数 |
+| `--size` | `4194304` (4 MiB) | IO size in bytes / 每次 IO 的数据大小 |
+| `--concurrency` | `4` | Concurrent operations / 并发操作数 |
+| `--samples` | `10` | Sample count / 采样次数 |
 
-#### 示例
+#### Examples / 示例
 
 ```bash
-# 4MiB 写入 4 并发
+# 4MiB write, 4 concurrency
 stordiag bench write --size=4M --concurrency=4
 
-# 64KiB 小文件写入 (高 IOPS 场景)
+# 64KiB small file write (high IOPS scenario)
 stordiag bench write --size=64K --concurrency=8 --samples=100
 
-# 大文件读取
+# Large file read
 stordiag bench read --size=64M --concurrency=2 --samples=5
 
-# S3 场景
+# S3 scenario
 stordiag bench write --size=4M --concurrency=16 --endpoint minio:9000
 ```
 
-#### 输出示例
+#### Output Example / 输出示例
 
 ```
 === Bench: /data (posix) ===
@@ -286,51 +295,52 @@ P99 Latency  1.42ms
 Errors       0
 ```
 
-#### 调参建议
+#### Parameter Guide / 调参建议
 
-| 场景 | size | concurrency | samples |
+| Scenario / 场景 | size | concurrency | samples |
 |---|---|---|---|
-| 吞吐基准 | 4MiB | 4-8 | 10-30 |
-| IOPS 基准 (小文件) | 4KiB | 16-64 | 100-500 |
-| 大块顺序读写 | 64MiB | 1-2 | 5-10 |
-| 极端压力 | 1MiB | 64-128 | 50 |
+| Throughput baseline / 吞吐基准 | 4MiB | 4-8 | 10-30 |
+| IOPS baseline (small file) / IOPS 基准 | 4KiB | 16-64 | 100-500 |
+| Large sequential / 大块顺序读写 | 64MiB | 1-2 | 5-10 |
+| Extreme stress / 极端压力 | 1MiB | 64-128 | 50 |
 
 ---
 
-### `verify` — 数据完整性校验
+### `verify` — Data Integrity / 数据完整性校验
 
+End-to-end data integrity verification: write known data → read back → SHA256/MD5 comparison. Detects silent data corruption, bit rot, and network transfer errors.
 端到端数据完整性检测：写入已知数据 → 读出 → SHA256/MD5 比对。检测静默数据损坏、bit rot、网络传输错误。
 
 ```
 stordiag verify <path> [flags]
 ```
 
-#### 参数
+#### Arguments / 参数
 
-| 参数 | 说明 |
+| Arg / 参数 | Description / 说明 |
 |---|---|
-| `path` | 在存储后端上的路径 |
+| `path` | Path on the storage backend / 在存储后端上的路径 |
 
 #### Flags
 
-| Flag | 默认值 | 说明 |
+| Flag | Default / 默认值 | Description / 说明 |
 |---|---|---|
-| `--algo` | `sha256` | 校验算法：`sha256` 或 `md5` |
+| `--algo` | `sha256` | Algorithm: `sha256` or `md5` / 校验算法 |
 
-#### 示例
+#### Examples / 示例
 
 ```bash
-# 默认 sha256
+# Default sha256
 stordiag verify /backup/db.sql --endpoint /data
 
-# MD5 快速校验
+# MD5 quick check
 stordiag verify test.dat --algo md5
 
-# S3 对象校验
+# S3 object verification
 stordiag verify important.bin --endpoint s3.company.com
 ```
 
-#### 输出示例
+#### Output Example / 输出示例
 
 ```
 === Verify: /data/backup/db.sql ===
@@ -340,7 +350,7 @@ stordiag verify important.bin --endpoint s3.company.com
   Result:     OK (checksums match)
 ```
 
-损坏时：
+On corruption / 损坏时：
 
 ```
 === Verify: /data/backup/db.sql ===
@@ -350,14 +360,16 @@ stordiag verify important.bin --endpoint s3.company.com
   Result:     FAIL (checksums mismatch!)
 ```
 
-## 输出格式
+## Output Formats / 输出格式
 
-### Text（默认）
+### Text (Default / 默认)
 
+Terminal-friendly, tabwriter-aligned, grouped by layer.
 终端友好，带 tabwriter 对齐和层分组。
 
-### JSON（`--json`）
+### JSON (`--json`)
 
+Structured output, suitable for CI/CD integration and programmatic parsing.
 结构化输出，适合 CI/CD 集成和程序解析：
 
 ```json
@@ -381,42 +393,40 @@ stordiag verify important.bin --endpoint s3.company.com
 }
 ```
 
-## 故障场景诊断矩阵
+## Fault Diagnosis Matrix / 故障场景诊断矩阵
 
-| 场景 | L1 应用层 | L2 网络层 | L3 系统层 | 根因定位 |
+| Scenario / 场景 | L1 Application / 应用层 | L2 Network / 网络层 | L3 System / 系统层 | Root Cause / 根因定位 |
 |---|---|---|---|---|
-| 正常 | 低延迟高吞吐  | TCP <1ms | IOPS 正常 | — |
-| 网络延迟 | 延迟波动  | TCP connect↑ | IOPS 正常 | **L2** |
-| 网络丢包 | 吞吐骤降  | TCP 重传/超时 | IOPS 正常 | **L2** |
-| 磁盘繁忙 | 延迟升高吞吐降 | 网络正常 | await↑ iops↓ pressure_io↑ | **L3** |
-| 服务端 OOM | 连接重置  | TCP 正常→应用超时 | mem_avail↓ | **L1+L3** |
-| CPU 打满 | 延迟升高  | 网络正常 | cpu_iowait↑ | **L3** |
+| Normal / 正常 | Low latency, high throughput | TCP <1ms | Normal IOPS | — |
+| Network latency / 网络延迟 | Latency spikes | TCP connect↑ | Normal IOPS | **L2** |
+| Packet loss / 网络丢包 | Throughput drops | TCP retransmit/timeout | Normal IOPS | **L2** |
+| Busy disk / 磁盘繁忙 | Latency ↑, throughput ↓ | Network normal | await↑ iops↓ pressure_io↑ | **L3** |
+| Server OOM / 服务端 OOM | Connection reset | TCP normal → app timeout | mem_avail↓ | **L1+L3** |
+| CPU saturation / CPU 打满 | Latency ↑ | Network normal | cpu_iowait↑ | **L3** |
 
-### 故障模拟
+### Fault Simulation / 故障模拟
 
 ```bash
-# 模拟 IO 压力
+# Simulate IO pressure / 模拟 IO 压力
 stress-ng --hdd 4 --hdd-bytes 4G --timeout 60s &
 ./stordiag doctor --layers system
-# 观察: iops 飙升, await 变大, pressure_io 升高
 
-# 模拟内存压力
+# Simulate memory pressure / 模拟内存压力
 stress-ng --vm 2 --vm-bytes 2G --timeout 60s &
 ./stordiag layers system
-# 观察: memory_available 下降
 
-# 模拟网络延迟 (需要 MinIO Docker)
+# Simulate network latency (requires MinIO Docker) / 模拟网络延迟
 docker exec minio tc qdisc add dev eth0 root netem delay 100ms
 ./stordiag layers network
-# 观察: tcp_connect 延迟飙升到 ~100ms
 ```
 
-## 配置方式
+## Configuration / 配置方式
 
-优先级：**CLI flags > 环境变量 > 配置文件 > 默认值**
+Priority: **CLI flags > Environment variables / 环境变量 > Config file / 配置文件 > Defaults / 默认值**
 
-### 环境变量
+### Environment Variables / 环境变量
 
+All CLI flags can be set via `STORDIAG_` prefixed env vars:
 所有 CLI flags 均可通过 `STORDIAG_` 前缀环境变量设置：
 
 ```bash
@@ -428,9 +438,9 @@ export STORDIAG_SECURE=true
 export STORDIAG_TIMEOUT=60
 ```
 
-### 配置文件
+### Config File / 配置文件
 
-支持 YAML 格式的 `.stordiag.yaml` 或 `.stordiag.json`，存放在当前目录或 `--config` 指定：
+YAML format `.stordiag.yaml` or `.stordiag.json` in current directory, or `--config` specified:
 
 ```yaml
 endpoint: localhost:9000
@@ -440,35 +450,36 @@ bucket: data
 secure: false
 ```
 
-## 与 eBPF 的分层配合
+## Integration with eBPF / 与 eBPF 的分层配合
 
 ```
-stordiag doctor --json              # ① 定期巡检: 发现"哪层有问题"
-        ↓ 告警
-stordiag layers system              # ② 聚焦特定层: 缩小范围
-        ↓ 确认是 L3 磁盘问题
-sudo biolatency                      # ③ eBPF 深挖: IO 延迟分布
-sudo fileslower 10                   # ④ 文件级慢 IO 追踪
-sudo trace block_rq_issue           # ⑤ 块层 IO 事件
+stordiag doctor --json              # ① Periodic check: find "which layer" / 定期巡检
+        ↓ alert / 告警
+stordiag layers system              # ② Focus on specific layer / 聚焦特定层
+        ↓ confirmed L3 disk issue / 确认是 L3 磁盘问题
+sudo biolatency                      # ③ eBPF deep dive: IO latency distribution / IO 延迟分布
+sudo fileslower 10                   # ④ Slow file IO tracing / 文件级慢 IO 追踪
+sudo trace block_rq_issue           # ⑤ Block layer IO events / 块层 IO 事件
 ```
 
-| 工具 | 定位 | 部署 | 精度 | 场景 |
+| Tool / 工具 | Focus / 定位 | Deployment / 部署 | Precision / 精度 | Use Case / 场景 |
 |---|---|---|---|---|
-| stordiag | 业务视角端到端 | 零依赖, 普通用户 | ms/µs | 常态化巡检/CI |
-| eBPF (bcc/bpftrace) | 内核视角逐层分解 | root, 特定内核 | ns | 深度排查/调优 |
+| stordiag | End-to-end from business perspective / 业务视角端到端 | Zero dependency, normal user / 零依赖, 普通用户 | ms/µs | Routine check / CI / 常态化巡检/CI |
+| eBPF (bcc/bpftrace) | Kernel-level layer-by-layer / 内核视角逐层分解 | root, specific kernel / root, 特定内核 | ns | Deep dive / tuning / 深度排查/调优 |
 
-stordiag 做 **第一道筛选**, eBPF 做 **按需深挖**。两者互补。
+stordiag for **first-line screening**, eBPF for **on-demand deep dive**. They complement each other.
+stordiag 做**第一道筛选**，eBPF 做**按需深挖**。两者互补。
 
-## 构建
+## Build / 构建
 
 ```bash
-make build                 # 当前平台
-make cross                 # 交叉编译所有平台
+make build                 # Current platform / 当前平台
+make cross                 # Cross-compile all platforms / 交叉编译所有平台
 make fmt                   # go fmt
 make lint                  # go vet
-make clean                 # 清理
+make clean
 
-# 单平台交叉编译
+# Single platform cross-compile / 单平台交叉编译
 GOOS=linux GOARCH=arm64 go build -o stordiag-linux-arm64 .
 GOOS=darwin GOARCH=amd64 go build -o stordiag-darwin-amd64 .
 ```
