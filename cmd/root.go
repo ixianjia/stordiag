@@ -13,14 +13,16 @@ import (
 )
 
 var (
-	cfgFile  string
-	endpoint string
-	ak       string
-	sk       string
-	bucket   string
-	secure   bool
-	jsonOut  bool
+	cfgFile    string
+	endpoint   string
+	ak         string
+	sk         string
+	bucket     string
+	secure     bool
+	jsonOut    bool
 	timeoutSec int
+
+	version = "dev"
 
 	rootCmd = &cobra.Command{
 		Use:   "stordiag",
@@ -28,6 +30,9 @@ var (
 		Long: `stordiag - distributed storage debugging toolbox.
 Supports S3-compatible object storage and POSIX filesystems.`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if cmd.Name() == "version" || cmd.Name() == "help" {
+				return nil
+			}
 			return initDriver()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
