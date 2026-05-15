@@ -1,0 +1,51 @@
+{
+  "Target": "s3://stordiag@localhost:9004",
+  "Type": "s3",
+  "Summary": "FAIL (3 failures)",
+  "Layers": [
+    {
+      "layer": "L1:app",
+      "label": "Application",
+      "ok": 0, "warn": 0, "fail": 2,
+      "probes": [
+        { "name": "ping", "status": "FAIL", "latency": "5s",
+          "value": "unreachable", "detail": "connection refused" },
+        { "name": "bench_write", "status": "FAIL", "latency": "0s",
+          "value": "context deadline exceeded", "detail": "" },
+        { "name": "data_integrity", "status": "FAIL", "latency": "0s",
+          "value": "context deadline exceeded", "detail": "" }
+      ]
+    },
+    {
+      "layer": "L2:network",
+      "label": "Network",
+      "ok": 0, "warn": 0, "fail": 0,
+      "probes": [
+        { "name": "dns_lookup", "status": "OK", "latency": "1ms",
+          "value": "[127.0.0.1]", "detail": "" },
+        { "name": "tcp_connect", "status": "FAIL", "latency": "5s",
+          "value": "127.0.0.1:9004", "detail": "connection refused" },
+        { "name": "tls_handshake", "status": "N/A", "latency": "0s",
+          "value": "no TLS", "detail": "" }
+      ]
+    },
+    {
+      "layer": "L3:system",
+      "label": "System",
+      "ok": 5, "warn": 0, "fail": 0,
+      "probes": [
+        { "name": "disk_nvme0n1", "status": "OK", "latency": "0s",
+          "value": "iops=0 r_await=0.0ms w_await=0.0ms queue=0",
+          "detail": "/proc/diskstats delta over 1s" },
+        { "name": "memory_available", "status": "OK", "latency": "0s",
+          "value": "25000 MiB", "detail": "/proc/meminfo MemAvailable" },
+        { "name": "pressure_cpu", "status": "OK", "latency": "0s",
+          "value": "avg60=0.2%", "detail": "/proc/pressure/cpu some avg60" },
+        { "name": "pressure_io", "status": "OK", "latency": "0s",
+          "value": "avg60=0.1%", "detail": "/proc/pressure/io some avg60" },
+        { "name": "cpu_iowait", "status": "OK", "latency": "0s",
+          "value": "iowait=21000.0 tick", "detail": "/proc/stat cpu[5]" }
+      ]
+    }
+  ]
+}

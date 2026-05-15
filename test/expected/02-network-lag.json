@@ -1,0 +1,50 @@
+{
+  "Target": "s3://stordiag@localhost:9002",
+  "Type": "s3",
+  "Summary": "FAIL (2 failures)",
+  "Layers": [
+    {
+      "layer": "L1:app",
+      "label": "Application",
+      "ok": 1, "warn": 1, "fail": 0,
+      "probes": [
+        { "name": "ping", "status": "OK", "latency": "105ms", "value": "reachable" },
+        { "name": "bench_write", "status": "WARN", "latency": "112ms",
+          "value": "35.6 MB/s  p99=220ms", "detail": "延迟较基线升高 100x" },
+        { "name": "data_integrity", "status": "OK", "latency": "0s",
+          "value": "checksums match", "detail": "sha256" }
+      ]
+    },
+    {
+      "layer": "L2:network",
+      "label": "Network",
+      "ok": 0, "warn": 1, "fail": 1,
+      "probes": [
+        { "name": "dns_lookup", "status": "OK", "latency": "2ms",
+          "value": "[127.0.0.1]", "detail": "" },
+        { "name": "tcp_connect", "status": "FAIL", "latency": "112ms",
+          "value": "127.0.0.1:9002", "detail": "expected <1ms, got 112ms" },
+        { "name": "tls_handshake", "status": "N/A", "latency": "0s",
+          "value": "no TLS", "detail": "" }
+      ]
+    },
+    {
+      "layer": "L3:system",
+      "label": "System",
+      "ok": 4, "warn": 0, "fail": 0,
+      "probes": [
+        { "name": "disk_nvme0n1", "status": "OK", "latency": "1ms",
+          "value": "iops=120 r_await=0.1ms w_await=0.3ms queue=0",
+          "detail": "/proc/diskstats delta over 1s" },
+        { "name": "memory_available", "status": "OK", "latency": "0s",
+          "value": "25000 MiB", "detail": "/proc/meminfo MemAvailable" },
+        { "name": "pressure_cpu", "status": "OK", "latency": "0s",
+          "value": "avg60=0.5%", "detail": "/proc/pressure/cpu some avg60" },
+        { "name": "pressure_io", "status": "OK", "latency": "0s",
+          "value": "avg60=0.1%", "detail": "/proc/pressure/io some avg60" },
+        { "name": "cpu_iowait", "status": "OK", "latency": "0s",
+          "value": "iowait=21300.0 tick", "detail": "/proc/stat cpu[5]" }
+      ]
+    }
+  ]
+}

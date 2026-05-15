@@ -1,0 +1,46 @@
+{
+  "Target": "/tmp/stordiag_s3_corrupt",
+  "Type": "posix",
+  "Summary": "FAIL (1 failure)",
+  "Layers": [
+    {
+      "layer": "L1:app",
+      "label": "Application",
+      "ok": 1, "warn": 0, "fail": 1,
+      "probes": [
+        { "name": "ping", "status": "OK", "latency": "4µs", "value": "reachable" },
+        { "name": "bench_write", "status": "OK", "latency": "1ms",
+          "value": "3500.0 MB/s  p99=1.2ms", "detail": "" },
+        { "name": "data_integrity", "status": "FAIL", "latency": "0s",
+          "value": "checksums mismatch!", "detail": "possible silent corruption" }
+      ]
+    },
+    {
+      "layer": "L2:network",
+      "label": "Network",
+      "ok": 0, "warn": 0, "fail": 0,
+      "probes": [
+        { "name": "network", "status": "N/A", "latency": "0s",
+          "value": "local filesystem — no network" }
+      ]
+    },
+    {
+      "layer": "L3:system",
+      "label": "System",
+      "ok": 5, "warn": 0, "fail": 0,
+      "probes": [
+        { "name": "disk_nvme0n1", "status": "OK", "latency": "0s",
+          "value": "iops=0 r_await=0.0ms w_await=0.0ms queue=0",
+          "detail": "/proc/diskstats delta over 1s" },
+        { "name": "memory_available", "status": "OK", "latency": "0s",
+          "value": "25000 MiB", "detail": "/proc/meminfo MemAvailable" },
+        { "name": "pressure_cpu", "status": "OK", "latency": "0s",
+          "value": "avg60=0.2%", "detail": "/proc/pressure/cpu some avg60" },
+        { "name": "pressure_io", "status": "OK", "latency": "0s",
+          "value": "avg60=0.1%", "detail": "/proc/pressure/io some avg60" },
+        { "name": "cpu_iowait", "status": "OK", "latency": "0s",
+          "value": "iowait=21000.0 tick", "detail": "/proc/stat cpu[5]" }
+      ]
+    }
+  ]
+}
