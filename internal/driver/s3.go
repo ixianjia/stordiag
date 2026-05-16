@@ -107,4 +107,44 @@ func (d *S3Driver) EnsureBucket(ctx context.Context) error {
 	return nil
 }
 
+func (d *S3Driver) GetBucketVersioning(ctx context.Context) (string, error) {
+	v, err := d.client.GetBucketVersioning(ctx, d.bucket)
+	if err != nil {
+		return "", err
+	}
+	if v.Status == "" {
+		return "unversioned", nil
+	}
+	return v.Status, nil
+}
+
+func (d *S3Driver) GetBucketEncryption(ctx context.Context) (string, error) {
+	cfg, err := d.client.GetBucketEncryption(ctx, d.bucket)
+	if err != nil {
+		return "", err
+	}
+	if cfg == nil {
+		return "none", nil
+	}
+	if len(cfg.Rules) == 0 {
+		return "none", nil
+	}
+	return cfg.Rules[0].Apply.SSEAlgorithm, nil
+}
+
+func (d *S3Driver) ListObjectsCount(ctx context.Context, maxKeys int) (int, time.Duration, error) {
+	start := time.Now()
+	opts := minio.ListObjectsOptions{
+		MaxKeys: maxKeys,
+	}
+	var count int
+	for obj := range d.client.ListObjects(ctx, d.bucket, opts) {
+		if obj.Err != nil {
+			return count, time.Since(start), obj.Err
+		}
+		count++
+	}
+	return count, time.Since(start), nil
+}
+
 

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -20,10 +21,13 @@ var doctorLayers string
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Comprehensive diagnostics across all layers",
-	Long: `Run diagnostics across all three layers:
-  L1 (app)     — health, bench, data integrity
-  L2 (network) — DNS, TCP, TLS breakdown
-  L3 (system)  — disk IO, memory, CPU iowait, pressure stall`,
+	Long: `Run diagnostics across all layers:
+  app            — health, bench, data integrity
+  s3             — versioning, encryption, listing perf (S3 only)
+  network        — DNS, TCP, TLS breakdown
+  system         — disk IO, memory, CPU iowait, pressure stall
+  filesystem     — FS type, usage, block device (POSIX only)
+  all            — everything applicable`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		drv := globalDriver
 		if drv == nil {
@@ -45,6 +49,12 @@ var doctorCmd = &cobra.Command{
 		l1 := runAppLayer(ctx, drv)
 		dr.Layers = append(dr.Layers, toLayerReportItem("L1:app", "Application", l1))
 
+		// === S3 Layer ===
+		if layerEnabled("s3") && drv.Type() == "s3" {
+			s3l := probe.ProbeS3(ctx, drv)
+			dr.Layers = append(dr.Layers, toLayerReportItem("L1:s3", "S3", s3l))
+		}
+
 		// === L2: Network Layer ===
 		if layerEnabled("network") {
 			l2 := probe.ProbeNetwork(ctx, drv)
@@ -55,6 +65,12 @@ var doctorCmd = &cobra.Command{
 		if layerEnabled("system") {
 			l3 := probe.ProbeSystem(ctx, drv)
 			dr.Layers = append(dr.Layers, toLayerReportItem("L3:system", "System", l3))
+		}
+
+		// === Filesystem Layer ===
+		if layerEnabled("filesystem") && drv.Type() == "posix" {
+			fsl := probe.ProbeFilesystem(ctx, drv)
+			dr.Layers = append(dr.Layers, toLayerReportItem("L3:fs", "Filesystem", fsl))
 		}
 
 		// Summary
@@ -149,7 +165,15 @@ func durationStr(d time.Duration) string {
 }
 
 func layerEnabled(name string) bool {
-	return doctorLayers == "all" || doctorLayers == name
+	if doctorLayers == "all" {
+		return true
+	}
+	for _, l := range strings.Split(doctorLayers, ",") {
+		if strings.TrimSpace(l) == name {
+			return true
+		}
+	}
+	return false
 }
 
 func summarizeLayers(layers []report.LayerReportItem) string {
@@ -170,6 +194,6 @@ func summarizeLayers(layers []report.LayerReportItem) string {
 
 func init() {
 	doctorCmd.Flags().StringVar(&doctorLayers, "layers", "all",
-		"Layers to probe: all, app, network, system")
+		"Layers to probe: all, app, s3, network, system, filesystem (comma-separated)")
 	rootCmd.AddCommand(doctorCmd)
 }
