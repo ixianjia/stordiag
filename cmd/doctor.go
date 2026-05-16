@@ -36,51 +36,12 @@ var doctorCmd = &cobra.Command{
 
 		fmt.Fprintf(os.Stderr, "=== Running diagnostics on %s ===\n\n", drv)
 
-		ctx, cancel := ctx()
-		defer cancel()
-
-		dr := report.DoctorReport{
-			Target:    drv.String(),
-			Type:      drv.Type(),
-			Timestamp: time.Now(),
-		}
-
-		// === L1: Application Layer ===
-		l1 := runAppLayer(ctx, drv)
-		dr.Layers = append(dr.Layers, toLayerReportItem("L1:app", "Application", l1))
-
-		// === S3 Layer ===
-		if layerEnabled("s3") && drv.Type() == "s3" {
-			s3l := probe.ProbeS3(ctx, drv)
-			dr.Layers = append(dr.Layers, toLayerReportItem("L1:s3", "S3", s3l))
-		}
-
-		// === L2: Network Layer ===
-		if layerEnabled("network") {
-			l2 := probe.ProbeNetwork(ctx, drv)
-			dr.Layers = append(dr.Layers, toLayerReportItem("L2:network", "Network", l2))
-		}
-
-		// === L3: System Layer ===
-		if layerEnabled("system") {
-			l3 := probe.ProbeSystem(ctx, drv)
-			dr.Layers = append(dr.Layers, toLayerReportItem("L3:system", "System", l3))
-		}
-
-		// === Filesystem Layer ===
-		if layerEnabled("filesystem") && drv.Type() == "posix" {
-			fsl := probe.ProbeFilesystem(ctx, drv)
-			dr.Layers = append(dr.Layers, toLayerReportItem("L3:fs", "Filesystem", fsl))
-		}
-
-		// Summary
-		dr.Summary = summarizeLayers(dr.Layers)
+		dr := runDoctor(drv, doctorLayers)
 
 		f := report.FormatText
 		if jsonOut {
 			f = report.FormatJSON
 		}
-		// Print layer summaries at the top
 		for _, l := range dr.Layers {
 			fmt.Fprintf(os.Stderr, "  %s  OK=%d WARN=%d FAIL=%d\n", l.Label, l.OK, l.WARN, l.FAIL)
 		}
@@ -89,6 +50,43 @@ var doctorCmd = &cobra.Command{
 		report.PrintDoctor(os.Stdout, dr, f)
 		return nil
 	},
+}
+
+func runDoctor(drv driver.Driver, layers string) report.DoctorReport {
+	ctx, cancel := ctx()
+	defer cancel()
+
+	dr := report.DoctorReport{
+		Target:    drv.String(),
+		Type:      drv.Type(),
+		Timestamp: time.Now(),
+	}
+
+	l1 := runAppLayer(ctx, drv)
+	dr.Layers = append(dr.Layers, toLayerReportItem("L1:app", "Application", l1))
+
+	if layerEnabledWith(layers, "s3") && drv.Type() == "s3" {
+		s3l := probe.ProbeS3(ctx, drv)
+		dr.Layers = append(dr.Layers, toLayerReportItem("L1:s3", "S3", s3l))
+	}
+
+	if layerEnabledWith(layers, "network") {
+		l2 := probe.ProbeNetwork(ctx, drv)
+		dr.Layers = append(dr.Layers, toLayerReportItem("L2:network", "Network", l2))
+	}
+
+	if layerEnabledWith(layers, "system") {
+		l3 := probe.ProbeSystem(ctx, drv)
+		dr.Layers = append(dr.Layers, toLayerReportItem("L3:system", "System", l3))
+	}
+
+	if layerEnabledWith(layers, "filesystem") && drv.Type() == "posix" {
+		fsl := probe.ProbeFilesystem(ctx, drv)
+		dr.Layers = append(dr.Layers, toLayerReportItem("L3:fs", "Filesystem", fsl))
+	}
+
+	dr.Summary = summarizeLayers(dr.Layers)
+	return dr
 }
 
 func runAppLayer(ctx context.Context, drv driver.Driver) *probe.LayerReport {
@@ -165,10 +163,14 @@ func durationStr(d time.Duration) string {
 }
 
 func layerEnabled(name string) bool {
-	if doctorLayers == "all" {
+	return layerEnabledWith(doctorLayers, name)
+}
+
+func layerEnabledWith(layers, name string) bool {
+	if layers == "all" {
 		return true
 	}
-	for _, l := range strings.Split(doctorLayers, ",") {
+	for _, l := range strings.Split(layers, ",") {
 		if strings.TrimSpace(l) == name {
 			return true
 		}

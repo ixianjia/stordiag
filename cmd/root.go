@@ -30,7 +30,8 @@ var (
 		Long: `stordiag - distributed storage debugging toolbox.
 Supports S3-compatible object storage and POSIX filesystems.`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Name() == "version" || cmd.Name() == "help" {
+			switch cmd.Name() {
+			case "version", "help", "diff":
 				return nil
 			}
 			return initDriver()
