@@ -41,8 +41,15 @@ type BenchReport struct {
 	Concurrency int
 	Duration    time.Duration
 	Throughput  float64
+	IOPS        float64
+	Tier        string
 	AvgLatency  time.Duration
+	P50Latency  time.Duration
+	P95Latency  time.Duration
 	P99Latency  time.Duration
+	P999Latency time.Duration
+	MinLatency  time.Duration
+	MaxLatency  time.Duration
 	Errors      int
 }
 
@@ -121,12 +128,19 @@ func PrintBench(w io.Writer, r BenchReport, format Format) {
 		fmt.Fprintln(tw, "Metric\tValue")
 		fmt.Fprintln(tw, "------\t-----")
 		fmt.Fprintf(tw, "Operation\t%s\n", r.Op)
+		fmt.Fprintf(tw, "Tier\t%s\n", r.Tier)
 		fmt.Fprintf(tw, "Size\t%s\n", r.Size)
 		fmt.Fprintf(tw, "Concurrency\t%d\n", r.Concurrency)
 		fmt.Fprintf(tw, "Duration\t%s\n", r.Duration.String())
 		fmt.Fprintf(tw, "Throughput\t%.2f MB/s\n", r.Throughput)
+		fmt.Fprintf(tw, "IOPS\t%.0f\n", r.IOPS)
+		fmt.Fprintf(tw, "Min Latency\t%s\n", r.MinLatency.String())
 		fmt.Fprintf(tw, "Avg Latency\t%s\n", r.AvgLatency.String())
+		fmt.Fprintf(tw, "P50 Latency\t%s\n", r.P50Latency.String())
+		fmt.Fprintf(tw, "P95 Latency\t%s\n", r.P95Latency.String())
 		fmt.Fprintf(tw, "P99 Latency\t%s\n", r.P99Latency.String())
+		fmt.Fprintf(tw, "P99.9 Latency\t%s\n", r.P999Latency.String())
+		fmt.Fprintf(tw, "Max Latency\t%s\n", r.MaxLatency.String())
 		fmt.Fprintf(tw, "Errors\t%d\n", r.Errors)
 		tw.Flush()
 	}

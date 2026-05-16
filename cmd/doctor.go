@@ -87,7 +87,12 @@ func runAppLayer(ctx context.Context, drv driver.Driver) *probe.LayerReport {
 	r.Add("ping", "OK", hr.Latency, "reachable", "")
 
 	// 2. Quick bench
-	br, err := probe.MeasureLatency(ctx, drv, "write", 4*1024*1024, 1, 3)
+	br, err := probe.MeasureLatency(ctx, drv, probe.BenchConfig{
+		Op:          "write",
+		Size:        4 * 1024 * 1024,
+		Concurrency: 1,
+		Samples:     3,
+	})
 	if err != nil {
 		r.Add("bench_write", "WARN", 0, err.Error(), "")
 	} else {
@@ -107,6 +112,9 @@ func runAppLayer(ctx context.Context, drv driver.Driver) *probe.LayerReport {
 	} else {
 		r.Add("data_integrity", "FAIL", 0, "checksums mismatch!", "possible silent corruption")
 	}
+
+	// cleanup verify object
+	_ = drv.Delete(ctx, testPath)
 
 	return r
 }
