@@ -74,12 +74,6 @@ func ProbeNetwork(ctx context.Context, drv driver.Driver) *LayerReport {
 
 	_ = tlsUsed
 
-	// --- Round-trip time (RTT) ---
-	// For POSIX drivers, network info is N/A
-	if drv.Type() == "posix" {
-		r.Add("note", "OK", 0, "localhost — network stats N/A", "")
-	}
-
 	return r
 }
 

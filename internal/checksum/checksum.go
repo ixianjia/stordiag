@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash"
+	"hash/crc32"
 	"io"
 
 	"github.com/chirs/stordiag/internal/driver"
@@ -47,6 +48,8 @@ func Compute(r io.Reader, kind Kind) (Result, error) {
 		h = md5.New()
 	case SHA256:
 		h = sha256.New()
+	case CRC32C:
+		h = crc32.NewIEEE()
 	default:
 		return Result{}, fmt.Errorf("unsupported checksum kind: %v", kind)
 	}

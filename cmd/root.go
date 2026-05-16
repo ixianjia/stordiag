@@ -116,6 +116,9 @@ func initDriver() error {
 	if err != nil {
 		return fmt.Errorf("init s3 driver: %w", err)
 	}
+	bc, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_ = d.EnsureBucket(bc)
 	globalDriver = d
 	fmt.Fprintf(os.Stderr, "driver: s3 @ %s/%s\n", ep, bucket)
 	return nil

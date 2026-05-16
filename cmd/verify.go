@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"os"
@@ -51,10 +52,20 @@ var verifyCmd = &cobra.Command{
 			return fmt.Errorf("verify: %w", err)
 		}
 
-		// read back and compute for reporting
-		remote, local, match, err := v.Verify(ctx, path, kind)
+		// local checksum from original data
+		localResult, err := checksum.Compute(bytes.NewReader(data), kind)
 		if err != nil {
-			return fmt.Errorf("re-verify: %w", err)
+			return fmt.Errorf("local checksum: %w", err)
+		}
+
+		// remote checksum: read back from storage
+		var buf bytes.Buffer
+		if err := drv.Read(ctx, path, &buf); err != nil {
+			return fmt.Errorf("read back: %w", err)
+		}
+		remoteResult, err := checksum.Compute(&buf, kind)
+		if err != nil {
+			return fmt.Errorf("remote checksum: %w", err)
 		}
 
 		vr := report.VerifyReport{
@@ -62,9 +73,9 @@ var verifyCmd = &cobra.Command{
 			Type:       drv.Type(),
 			Path:       path,
 			Algo:       kind.String(),
-			RemoteHash: remote.Digest,
-			LocalHash:  local.Digest,
-			Match:      ok && match,
+			RemoteHash: remoteResult.Digest,
+			LocalHash:  localResult.Digest,
+			Match:      ok,
 			Timestamp:  time.Now(),
 		}
 

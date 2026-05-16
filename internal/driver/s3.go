@@ -1,11 +1,9 @@
 package driver
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -98,21 +96,7 @@ func (d *S3Driver) Bucket() string { return d.bucket }
 
 func (d *S3Driver) Endpoint() string { return d.ep }
 
-func (d *S3Driver) parseS3URL(raw string) (bucket, prefix string) {
-	raw = strings.TrimPrefix(raw, "s3://")
-	parts := strings.SplitN(raw, "/", 2)
-	bucket = parts[0]
-	if len(parts) > 1 {
-		prefix = parts[1]
-	}
-	// write empty content to create bucket placeholder for stat
-	if bucket != "" && d.bucket == "" {
-		d.bucket = bucket
-	}
-	return
-}
-
-func (d *S3Driver) ensureBucket(ctx context.Context) error {
+func (d *S3Driver) EnsureBucket(ctx context.Context) error {
 	exists, err := d.client.BucketExists(ctx, d.bucket)
 	if err != nil {
 		return err
@@ -123,11 +107,4 @@ func (d *S3Driver) ensureBucket(ctx context.Context) error {
 	return nil
 }
 
-func (d *S3Driver) benchOnce(ctx context.Context, path string, buf []byte) (time.Duration, error) {
-	start := time.Now()
-	err := d.Write(ctx, path, bytes.NewReader(buf), int64(len(buf)))
-	if err != nil {
-		return 0, err
-	}
-	return time.Since(start), nil
-}
+

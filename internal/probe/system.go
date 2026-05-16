@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -35,12 +36,22 @@ type sysSnapshot struct {
 func ProbeSystem(ctx context.Context, drv driver.Driver) *LayerReport {
 	r := &LayerReport{Layer: LayerSystem}
 
+	if runtime.GOOS != "linux" {
+		r.Add("system", "N/A", 0, "system layer only supported on Linux", "")
+		return r
+	}
+
 	// --- Disk IO stats ---
 	s1, err := readSysSnapshot()
 	if err != nil {
 		r.Error("disk_snapshot_1", 0, err)
 	} else {
-		time.Sleep(1 * time.Second)
+		select {
+		case <-ctx.Done():
+			r.Error("disk_snapshot", 0, ctx.Err())
+			return r
+		case <-time.After(1 * time.Second):
+		}
 		s2, err := readSysSnapshot()
 		if err != nil {
 			r.Error("disk_snapshot_2", 0, err)

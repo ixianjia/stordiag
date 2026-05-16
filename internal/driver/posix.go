@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -26,10 +27,14 @@ func (d *POSIXDriver) Type() string { return "posix" }
 func (d *POSIXDriver) String() string { return d.root }
 
 func (d *POSIXDriver) resolve(path string) string {
-	if filepath.IsAbs(path) {
-		return path
+	p := filepath.Join(d.root, path)
+	p = filepath.Clean(p)
+
+	root := filepath.Clean(d.root)
+	if !strings.HasPrefix(p, root+string(filepath.Separator)) && p != root {
+		p = root
 	}
-	return filepath.Join(d.root, path)
+	return p
 }
 
 func (d *POSIXDriver) Ping(ctx context.Context) HealthResult {

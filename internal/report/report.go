@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -207,8 +206,6 @@ func FormatBytes(n int64) string {
 		return fmt.Sprintf("%d B", n)
 	}
 }
-
-var Stderr = os.Stderr
 
 func PrintTable(w io.Writer, headers []string, rows [][]string) {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
