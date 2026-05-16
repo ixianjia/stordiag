@@ -16,7 +16,11 @@ import (
 	"github.com/chirs/stordiag/internal/report"
 )
 
-var doctorLayers string
+var (
+	doctorLayers string
+	doctorProm   bool
+	doctorHTML   string
+)
 
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
@@ -38,6 +42,21 @@ var doctorCmd = &cobra.Command{
 
 		dr := runDoctor(drv, doctorLayers)
 
+		if doctorProm {
+			report.PrintDoctorPrometheus(os.Stdout, dr)
+			return summaryExitCode(dr.Summary)
+		}
+		if doctorHTML != "" {
+			f, err := os.Create(doctorHTML)
+			if err != nil {
+				return fmt.Errorf("create html file: %w", err)
+			}
+			defer f.Close()
+			report.PrintDoctorHTML(f, dr)
+			fmt.Fprintf(os.Stderr, "Report saved to %s\n", doctorHTML)
+			return summaryExitCode(dr.Summary)
+		}
+
 		f := report.FormatText
 		if jsonOut {
 			f = report.FormatJSON
@@ -48,7 +67,7 @@ var doctorCmd = &cobra.Command{
 		fmt.Fprintln(os.Stderr)
 
 		report.PrintDoctor(os.Stdout, dr, f)
-		return nil
+		return summaryExitCode(dr.Summary)
 	},
 }
 
@@ -194,8 +213,21 @@ func summarizeLayers(layers []report.LayerReportItem) string {
 	}
 }
 
+func summaryExitCode(summary string) error {
+	switch {
+	case len(summary) >= 4 && summary[:4] == "FAIL":
+		return exitFail
+	case len(summary) >= 4 && summary[:4] == "PASS" && len(summary) > 4:
+		return exitWarn
+	default:
+		return nil
+	}
+}
+
 func init() {
 	doctorCmd.Flags().StringVar(&doctorLayers, "layers", "all",
 		"Layers to probe: all, app, s3, network, system, filesystem (comma-separated)")
+	doctorCmd.Flags().BoolVar(&doctorProm, "prometheus", false, "Output Prometheus metrics format")
+	doctorCmd.Flags().StringVar(&doctorHTML, "html", "", "Write HTML report to file")
 	rootCmd.AddCommand(doctorCmd)
 }

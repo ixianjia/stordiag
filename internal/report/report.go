@@ -14,6 +14,7 @@ type Format int
 const (
 	FormatText Format = iota
 	FormatJSON
+	FormatPrometheus
 )
 
 type HealthReport struct {
@@ -206,6 +207,124 @@ func printLayerSection(w io.Writer, lr LayerReportItem) {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", p.Name, p.Status, lat, p.Value, p.Detail)
 	}
 	tw.Flush()
+}
+
+func PrintDoctorPrometheus(w io.Writer, r DoctorReport) {
+	ts := r.Timestamp.Unix()
+	labels := fmt.Sprintf(`endpoint="%s",type="%s"`, r.Target, r.Type)
+
+	fmt.Fprintf(w, "# HELP stordiag_summary Diagnosis summary (0=PASS 1=WARN 2=FAIL)\n")
+	fmt.Fprintf(w, "# TYPE stordiag_summary gauge\n")
+	summaryVal := 0
+	if len(r.Summary) >= 4 && r.Summary[:4] == "FAIL" {
+		summaryVal = 2
+	} else if len(r.Summary) >= 4 && r.Summary[:4] == "PASS" && len(r.Summary) > 4 {
+		summaryVal = 1
+	}
+	fmt.Fprintf(w, "stordiag_summary{%s} %d %d\n", labels, summaryVal, ts)
+
+	fmt.Fprintf(w, "\n# HELP stordiag_layer_probes Layer probe counts\n")
+	fmt.Fprintf(w, "# TYPE stordiag_layer_probes gauge\n")
+	for _, l := range r.Layers {
+		ll := fmt.Sprintf(`layer="%s",label="%s",%s`, l.Layer, l.Label, labels)
+		fmt.Fprintf(w, "stordiag_layer_ok{%s} %d %d\n", ll, l.OK, ts)
+		fmt.Fprintf(w, "stordiag_layer_warn{%s} %d %d\n", ll, l.WARN, ts)
+		fmt.Fprintf(w, "stordiag_layer_fail{%s} %d %d\n", ll, l.FAIL, ts)
+	}
+
+	fmt.Fprintf(w, "\n# HELP stordiag_probe_status Probe status (0=OK 1=WARN 2=FAIL 3=N/A)\n")
+	fmt.Fprintf(w, "# TYPE stordiag_probe_status gauge\n")
+	for _, l := range r.Layers {
+		for _, p := range l.Probes {
+			statusVal := 0
+			switch p.Status {
+			case "OK":
+				statusVal = 0
+			case "WARN":
+				statusVal = 1
+			case "FAIL":
+				statusVal = 2
+			default:
+				statusVal = 3
+			}
+			pl := fmt.Sprintf(`layer="%s",probe="%s",%s`, l.Layer, p.Name, labels)
+			fmt.Fprintf(w, "stordiag_probe_status{%s} %d %d\n", pl, statusVal, ts)
+		}
+	}
+}
+
+func PrintDoctorHTML(w io.Writer, r DoctorReport) {
+	t := r.Timestamp.Format("2006-01-02 15:04:05")
+
+	fmt.Fprint(w, `<!DOCTYPE html><html><head><meta charset="utf-8"><title>stordiag Report</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 20px;color:#333}
+h1{font-size:1.4rem;border-bottom:2px solid #eee;padding-bottom:8px}
+table{width:100%;border-collapse:collapse;margin:12px 0 24px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid #eee}
+th{background:#f8f9fa;font-weight:600}
+.summary{padding:8px 16px;border-radius:6px;display:inline-block;font-weight:600}
+.PASS{background:#d4edda;color:#155724}
+.WARN{background:#fff3cd;color:#856404}
+.FAIL{background:#f8d7da;color:#721c24}
+.probe-OK{color:#155724}
+.probe-WARN{color:#856404}
+.probe-FAIL,.probe-unknown{color:#721c24}
+.probe-NA{color:#6c757d}
+.meta{color:#666;font-size:0.9rem}
+</style></head><body>
+<h1>stordiag Diagnostic Report</h1>
+<p class="meta">Target: `+htmlEsc(r.Target)+` (`+htmlEsc(r.Type)+`)<br>Timestamp: `+t+`</p>
+<p>Summary: <span class="summary `+htmlEsc(r.Summary)+`">`+htmlEsc(r.Summary)+`</span></p>`)
+
+	for _, l := range r.Layers {
+		fmt.Fprintf(w, `<h2>%s <span class="meta">[%s]</span></h2>`, htmlEsc(l.Label), htmlEsc(l.Layer))
+		fmt.Fprintf(w, `<p>OK=%d WARN=%d FAIL=%d</p>`, l.OK, l.WARN, l.FAIL)
+		if len(l.Probes) > 0 {
+			fmt.Fprint(w, `<table><tr><th>Probe</th><th>Status</th><th>Value</th><th>Detail</th></tr>`)
+			for _, p := range l.Probes {
+				statusClass := "probe-" + probeStatusClass(p.Status)
+				fmt.Fprintf(w, `<tr><td>%s</td><td class="%s">%s</td><td>%s</td><td>%s</td></tr>`,
+					htmlEsc(p.Name), statusClass, htmlEsc(p.Status), htmlEsc(p.Value), htmlEsc(p.Detail))
+			}
+			fmt.Fprint(w, `</table>`)
+		}
+	}
+	fmt.Fprint(w, `</body></html>`)
+}
+
+func probeStatusClass(s string) string {
+	switch s {
+	case "OK":
+		return "OK"
+	case "WARN":
+		return "WARN"
+	case "FAIL":
+		return "FAIL"
+	case "N/A":
+		return "NA"
+	default:
+		return "unknown"
+	}
+}
+
+func htmlEsc(s string) string {
+	var out []byte
+	for _, c := range []byte(s) {
+		switch c {
+		case '&':
+			out = append(out, "&amp;"...)
+		case '<':
+			out = append(out, "&lt;"...)
+		case '>':
+			out = append(out, "&gt;"...)
+		case '"':
+			out = append(out, "&quot;"...)
+		default:
+			out = append(out, c)
+		}
+	}
+	return string(out)
 }
 
 func FormatBytes(n int64) string {

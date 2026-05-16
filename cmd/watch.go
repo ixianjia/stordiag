@@ -104,7 +104,7 @@ Useful for debugging intermittent issues.
 			iteration++
 
 			if watchExitFail && strings.HasPrefix(dr.Summary, "FAIL") {
-				return fmt.Errorf("watch: %s", dr.Summary)
+				return exitFail
 			}
 
 			time.Sleep(interval)

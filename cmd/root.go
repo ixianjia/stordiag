@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -44,11 +45,36 @@ Supports S3-compatible object storage and POSIX filesystems.`,
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
+		var ec exitCode
+		if errors.As(err, &ec) {
+			os.Exit(int(ec))
+		}
 		os.Exit(1)
 	}
 }
 
 var globalDriver driver.Driver
+
+type exitCode int
+
+const (
+	exitPass exitCode = iota
+	exitWarn
+	exitFail
+)
+
+func (c exitCode) Error() string {
+	switch c {
+	case exitPass:
+		return "PASS"
+	case exitWarn:
+		return "WARN"
+	case exitFail:
+		return "FAIL"
+	default:
+		return "UNKNOWN"
+	}
+}
 
 func init() {
 	cobra.OnInitialize(initConfig)
